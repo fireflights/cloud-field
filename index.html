@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>cloud field</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				color: #61443e;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+				background-color: #df9ffd;
+	            margin: 0px;
+	            overflow: hidden;
+			}
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+			a {
+				color: #a06851;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container"><br /><br /><br /><br /><br />generating world...</div>
+		<div id="info">cloud field <br />(left click: forward, right click: backward)</div>
+
+		<script src="../build/three.js"></script>
+
+		<script src="js/controls/FirstPersonControls.js"></script>
+
+		<script src="js/ImprovedNoise.js"></script>
+
+		<script src="js/Detector.js"></script>
+		<script src="js/libs/stats.min.js"></script>
+
+		<script>
+			if ( ! Detector.webgl ) {
+				Detector.addGetWebGLMessage();
+				document.getElementById( 'container' ).innerHTML = "";
+			}
+			var container, stats;
+			var camera, controls, scene, renderer;
+			var mesh, texture;
+			var fogColorLerp = new THREE.Color(0xb2d7e6); //0xdf9ffd
+			var worldWidth = 512, worldDepth = 512,
+			worldHalfWidth = worldWidth / 2, worldHalfDepth = worldDepth / 2;
+			var clock = new THREE.Clock();
+			var labels = ["06/16/16 11:10PM//  walrus ka ba",
+							"06/04/16 12:57AM//  bm ba?",
+							"06/04/16 12:04AM//  meg san",
+							"06/03/16 11:52PM//  ok so san :))))",
+							"06/03/16 10:31PM//  san plano naatin girl pwede ka namin puntahan",
+							"06/03/16  9:49PM//  san tayo girl",
+							"05/29/16 12:04AM//  SAN KS",
+							"05/10/16  8:31PM//  san kaaaaaa wala ka sa kennys",
+							"04/24/16  1:08AM//  gags asan ks",
+							"04/07/16  4:30PM//  alfred to gurl / andyan ka na?",
+							"06/16/16 10:27PM//  west ka ba",
+							"06/16/16 10:16PM//  you guys there pa?",
+							"06/12/16 10:12PM//  san u",
+							"05/20/16  4:13PM//  ok san kita imeet",
+							"03/30/16  7:08PM//  san sa morato / -alfred",
+							"06/16/16  7:39PM//  san sa SM ko kayo mimeet",
+							"05/20/16 10:49PM//  ok san yan",
+							"04/30/16  7:10PM//  NASAN KA",
+							"04/30/16  7:02PM//  san mo gusto kumain?",
+							"03/12/16  6:51PM//  san ka",
+							"03/27/16  6:36PM//  san po kayo banda",
+							"06/03/16  1:10PM//  azel! alfred heeere / san ulit banda bldg niyo?",
+							"05/27/16 11:45PM//  r u out",
+							"05/03/16  6:05PM//  san ka",
+							"06/04/16 10:40PM//  kakarating ko lang! andyan ka n?",
+							"05/14/16  5:45PM//  hap chan ka?",
+							"05/06/16 10:31PM//  san kaaa",
+							"05/06/16 10:21PM//  gurl you still there?",
+							"05/28/16 11:56PM//  :))) sige meet you there?",
+							"05/28/16 12:36AM//  r u still in katipunan",
+							"04/30/16  7:47PM//  san balak niyo",
+							"05/27/16 11:15AM//  nat bes alfred to / papunta ka bang FA today?",
+							"05/27/16 11:02AM//  san kayo bes",
+							"05/27/16 10:41AM//  bes basa school ba si nat",
+							"05/27/16 10:41AM//  gurl school ka ba",
+							"04/20/16  8:39AM//  Hi Abie! / Nandiyan ba si maam? / kelan ulit yung kay sir bogie ruiz na thing?",
+							"04/15/16  7:35PM//  nasa start101 pa kayo?",
+							"04/14/16  7:43PM//  Abie! Nasa loob ka ba???",
+							"04/07/16  1:59PM//  YUH / FA ka pa ba / pwede ko dumaan at 3",
+							"04/24/16  1:17AM//  gurl r u out",
+							"04/15/16  9:48PM//  san kayo",
+							"03/12/16  8:32PM//  san kayo after the play",
+							"03/08/16 10:06PM//  san ka",
+							"05/13/16 10:18PM//  sorry!!! oo e magcclose na / punta ako sayo in a bit with usbbb / sa lobby na oracle?",
+							"04/19/16  2:14PM//  class ka na ba? Haha",
+							"04/25/16  7:31PM//  san u",
+							"04/24/16  1:13AM//  dude are you out / -alfred",
+							"04/24/16  1:09AM//  SAN KA + :)))",
+							"04/22/16 10:22PM//  san kaaa / nasa office fa",
+							"03/20/16  9:04PM//  gurl san ka!!! bgc ako / -alfred",
+							"04/15/16  8:51PM//  friend san kayo ni june / -alfred",
+							"04/10/16  3:57PM//  ccp na! san ka!!!",
+							"04/15/16 11:41AM//  Hi, Sarah! Where will you be? I have 2-5pm classes lang in Ateneo.",
+							"04/15/16  5:41PM//  Hi, Tim! Where are you now?",
+							"04/14/16  4:22PM//  hi kuya roberto! san na po kayo? text niyo lang po if maligaw ang innove niyo / salamat po!",
+							"04/07/16  5:18PM//  ms noiii / nasa office po kayo?  dumaan ako closed!",
+							"03/18/16  8:59PM//  ok na gurl / di ko type pero see you / hahahahaha siguro fort strip? pano ba",
+							"03/13/16  6:49PM//  Asan ka!!!",
+							"03/10/16  6:20PM//  san ka",
+							"03/10/16 12:34PM//  san ka",
+							"02/26/16  5:15PM//  Nicko! San Ka?",
+							"05/27/15  2:08PM//  San ka nick", //FACEBOOK COMMENTS AFTER THIS
+							"06/01/16  9:26PM// SAN KA NA",
+							"05/21/16 10:38PM// ikaw san ka",
+							"03/08/16  9:34PM// tara / san ka",
+							"02/16/16  8:20PM// San ka",
+							"02/04/16 10:55PM// San ka? ;'( pwede ba magfeelings",
+							"01/27/16  6:24PM// san ka",
+							"11/15/15 10:37PM// Alam mo wala ako kwenta pero / San ka",
+							"11/11/15 12:03PM// game haha san ka / pero mga 30 minutes lang // or 40 // (kakareply ko lang sa tweet :))) )",
+							"10/28/15 10:26PM// r u out zzzz",
+							"10/28/15 10:32PM// san ka?? // or sabado pa break time mo // :)))",
+							"08/04/15  6:20PM// oy // g // san ka // pauwi ako from up",
+							"07/17/15 10:10PM// san ka",
+							"07/10/15  9:13PM// san ka // -_- I feel like I hate everybody na now",
+							 "05/27/15 11:41A//M  > :( < we can only hope and pray // normal matakot pero feel ko focus ka lang sa mga tasks mo muna // nakakastress magworry sa mga bagay na wala naman or di p dumarating // <3 upo // san ka ba",
+							"04/28/15  5:04PM// san ka friend",
+							"02/25/15  5:57PM// san ka po",
+							"02/08/15 10:38PM// haha // bakit san ka // alone ako // :( // #cling",
+							"01/22/15  6:30PM// san ka po",
+							"01/20/15  7:18PM// san ka po",
+							"01/06/15  8:05PM// tru // san ka",
+							"11/20/14  9:35PM// san ka po",
+							"09/21/14  8:03PM// san ka po",
+							"08/07/14  6:22PM// :)))))))) o what time // actually tara na // san ka na",
+							"07/12/14 10:44PM// san ka",
+							"06/12/14  8:56PM// share tayo!!!!! san ka",
+							"03/26/14  9:51AM// SAN KA NA // HUHUHU",
+							"11/24/13  1:52PM// san ka",
+							"11/22/15 11:13PM// baka next week pwede // san ka maglolaunch // dun ka sa market mo",
+							"08/01/15  1:40PM// san ka :)))",
+							"06/04/15  7:22PM// huhu // san ka po",
+							"04/29/15  8:23PM// san ka // ayaw mo pa umuwi // ?",
+							"02/08/15  6:33PM// san ka",
+							"01/11/15  8:35PM// san ka mia // punta kami ni rez toledo to listen to his new music // wanna go",
+							"04/09/16 11:59AM// ok ok // nasa office ka ba? // san ka manggagaling",
+							"03/19/16  7:31PM// san ka // sobrang wala nakong followers :)) mga 200 na lang anuna",
+							"05/12/15  9:12PM// :)))) SAN KA",
+							"01/24/15  6:16PM// san ka po",
+							"01/22/15  6:49PM// san ka po",
+							"01/20/15  7:17PM// san ka na po",
+							"01/20/15  5:02PM// san ka",
+							"12/07/14  8:07PM// YEHES naman // san ka",
+							"11/20/14  1:24PM// san ka // fa office ako",
+							"10/14/14 10:11AM// huhu manel // paalala mo naman sakin na in exchange of being their friends, dapat palagi kong pupuntahan yung mga openings ng art friends ko // san ka",
+							"10/03/14  6:23PM// san ka",
+							"10/03/14 12:35PM// haha true // in my head alam kong tama siya // pero may something sa heart ko na naooffend HUHU // > :) < san ka",
+							"10/02/14  8:58PM// san ka na",
+							"10/01/14  9:04PM// katip ka ba",
+							"07/24/14  6:09PM// so...pano // san ka // #CLINGY",
+							"04/24/14  6:20PM// manelsky // san ka",
+							"03/30/14 10:13PM// san ka // question :)) may bayad ba pag nagpashoot kay JL // wag mo tanong ah // :))) kung ano lang alam mo couerl",
+							"03/18/16 11:10PM// san ka!!!",
+							"05/20/14  7:42AM// huhu okaaay // san ka na",
+							"06/03/15  8:52PM// pag megamall pano :)) interested ako kasi di pako nanggagaling dun // san ka ba uuwi",
+							"11/13/13  6:25PM// san ka?",
+							"11/30/15  1:22AM// sup // batangas // san ka galing hahahaha",
+							"01/23/15  8:07PM// san ka b // wala akong load beh",
+							"12/09/14  8:20PM// san ka gurl",
+							"08/24/14  7:08PM// san ka po // #dlingy // *#clingy",
+							"06/17/14  9:20PM// kain lung // san ka na",
+							"08/21/13 10:58PM// onga e // :))) // > :( < // san ka",
+							"07/20/13  7:10PM// HAHAHA GAME // san ka dinner?",
+							"02/21/16 10:17AM// san ka",
+							"08/20/13  2:59PM// hi :) // san ka? :))",
+							"08/16/13 11:04PM// hahahahaha ok lang naman ata sa kanya // nyare ba // san ka now tho",
+							"01/06/13  5:36PM// wabiiii // san ka naaa :<",
+							"10/09/11  9:34PM// jeje song HAHA // san ka kakain?",
+							"08/22/11  5:44PM// :) // san ka nga nag-iinternet ulit?",
+							"09/01/15  9:24PM// san ka now",
+							"03/02/15  1:52PM// g // san ka",
+							"12/19/14  6:33PM// oy san ka :))",
+							"05/03/16  4:51PM// san ka na",
+							"05/20/16  9:07PM// gurl san ka // bahay ka ba",
+							"11/05/13  6:23PM// san ka",
+							 "09/12/13  1:16P//M  pag nagpepaper ka naman sa school sabihan mo meee // :)) unless abala ako // I will feed u // because I earn #choz // pero alam kong mas maraming moolah si Mr. Lau //san ka now",
+							"02/2/13  1:17AM //geneve // you there",
+							"02/26/13  4:09PM// gurl san ka?",
+							"02/16/13  3:16PM// geneve // san ka? > :( < // #needy",
+							"01/14/12 10:49PM// :O SORRY! // kasama namin best friend ni khail! // :O // san ka?",
+							"07/26/11 11:02PM// okay // san ka",
+							"10/17/11  6:27PM// pao // san ka",
+							"06/27/16  7:51PM// girl // are you around",
+							"04/05/14  8:05AM// couerl san ka later",
+							"06/09/14  4:37PM// :((( san ka? work ka ba // di ba tayo pwedeng kumain lang (sa mura) if dadaan kang katip",
+							"05/10/13 12:03PM// haha // just browsin // san ka galing // I might sleep na in a few",
+							"06/18/12  9:16AM// san ka na te",
+							"06/12/12  5:09PM// te san ka",
+							"02/07/15  3:48PM// san ka // art fair ka ba",
+							"12/04/14  9:49AM// yes now!!!",
+							"10/28/14  5:34PM// :)) haha parang nga // san ka // :)))",
+							"08/20/14  5:33PM// hee hee // san ka // #clingy // training ka ba today",
+							"09/12/13  6:37PM// tas yay makikita rin pala kita sa gabi // taga Mandaluyong ex ko :< #chos // san ka dun?",
+							"09/12/13  6:29PM// aaaaaah kahit past 9 okay lang!!! unless uuwi ka na :( // san ka ba umuuwi?",
+							"01/07/16  9:22AM// Next time tayo kumain para healthy!!! // San ka nagggym // Game ako unless malayo",
+							"04/09/14 11:47PM// #plottwist // pero truela // sana mamaintain ko // ako na lang kalaban ko // :) // san ka // :)) // cal ka ba",
+							"12/01/13  4:06PM// Trish! san ka? // wala kang natanggap na text ko? // uhhh mgready ka ng camera, white na plate, spoon, fork, dilis (yung fish na dried sa Rustan's tayo), tsaka laptop.",
+							"05/29/16 12:33AM// I hate my habits // san ka",
+							"05/06/16 12:18AM// san ka",
+							"12/15/15 12:40AM// Sorry umuulan!!! San ka // San ka",
+							"10/24/14  8:11PM// san ka b",
+							"09/21/14  8:03PM// haha balat ng animal? // faux leather? // san ka siz",
+							"08/01/14  6:54PM// true // that's almost all it takes // san ka ba",
+							"06/14/14  9:35AM// gurl san ka",
+							"05/23/14  5:57PM// san ka",
+							"10/17/13  4:09AM// hahaha why san ka galing?",
+							"06/16/16  6:52PM// uy san kayo",
+							"01/05/16 11:21AM// Gurl san ka today // May marketing question ako for you",
+							"10/27/15 11:43PM// Shiiiit naggoal setting ako kanina nakakainis kasi di ako excited // North ka?",
+							"10/28/15 10:29PM// gurl san ka",
+							"05/10/14  5:42PM// gracieeee // san ka // is pasay near magallanes :))",
+							"10/11/15  1:12PM// Hi, girl! Yes! Are you back naaa",
+							"10/18/13 12:05PM// SAYANG!!!!!!!!!! // chirits // > :)))))) < // *digihug* na lang // san ka kakain",
+							"06/30/15  9:13PM// nicko // san ka",
+							"02/14/13  7:49PM// san ka na",
+							"02/13/13 11:05PM// san ka nag-aaral :(",
+							"02/09/13  8:15AM// Nicko! // San ka magtatrabaho? // Uuwi ka ba?",
+							"02/01/13  8:53AM//  sabihan mo nba kung may kailangan siya, message lang // sabihin mo rin I'm sure maaayos yan // don't tell him may gagawin ka na // he'll get the message :) // > :((( < THANK YOU NICKO //omg btw san ka magdidin"
+							];
+			init();
+			animate();
+
+			function wrapText(context, text, x, y, maxWidth, lineHeight) {
+		        var words = text.split('//');
+		        var line = '';
+
+		        for(var n = 0; n < words.length; n++) {
+		          var testLine = line + words[n] + ' ';
+		          var metrics = context.measureText(testLine);
+		          var testWidth = metrics.width;
+		          if (testWidth > maxWidth && n > 0) {
+		            context.fillText(line, x, y);
+		            line = words[n] + ' ';
+		            y += lineHeight;
+		          }
+		          else {
+		            line = testLine;
+		          }
+		        }
+		        context.fillText(line, x, y);
+		     }
+
+			function init() {
+				container = document.getElementById( 'container' );
+				camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 10000 );
+				controls = new THREE.FirstPersonControls( camera );
+				controls.movementSpeed = 150;
+				controls.lookSpeed = 0.1;
+				scene = new THREE.Scene();
+
+				scene.fog = new THREE.FogExp2( fogColorLerp , 0.0025 );//0xdf9ffd
+				data = generateHeight( worldWidth, worldDepth );
+				camera.position.y = data[ worldHalfWidth + worldHalfDepth * worldWidth ] * 10 + 500;
+				var geometry = new THREE.PlaneBufferGeometry( 9000, 9000, worldWidth - 1, worldDepth - 1 );
+				geometry.rotateX( - Math.PI / 2 );
+				
+				var vertices = geometry.attributes.position.array;
+				
+				divisions = 7500*7500/labels.length;
+				for ( var i = 0, j = 0, l = vertices.length; i < l; i ++, j += 3 ) {
+					vertices[ j + 1 ] = data[ i ] * 10;
+
+
+				}
+
+				m = 0;
+				for (var j = 0; j < vertices.length; j+=14*3*7) // important for population density
+				{
+
+					var spritey = makeTextSprite(labels[m], { borderColor: {r:255, g:255, b:255, a:0.0}} );
+							
+					spritey.position.set(vertices[j], vertices[j + 1] + 50, vertices[j + 2]);
+					scene.add( spritey );
+					if (m + 1 == labels.length)
+					{
+						m = 0;
+					}
+					else
+					{
+						m++;
+					}
+					
+				}
+
+				texture = new THREE.CanvasTexture( generateTexture( data, worldWidth, worldDepth ) );
+				texture.wrapS = THREE.ClampToEdgeWrapping;
+				texture.wrapT = THREE.ClampToEdgeWrapping;
+				mesh = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { map: texture } ) );
+				scene.add( mesh );
+
+				renderer = new THREE.WebGLRenderer( {alpha: true});
+				renderer.setClearColor( fogColorLerp  ); //0xb2d7e6
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.innerHTML = "";
+				container.appendChild( renderer.domElement );
+				stats = new Stats();
+				container.appendChild( stats.dom );
+				//
+				window.addEventListener( 'resize', onWindowResize, false );
+			}
+
+			function calculateMaxHeights (heightvalues, maxValues)
+			{
+				var fooTop = [];
+
+				// add index to values
+				for(var i = 0, len = heightvalues.length; i < len; ++i)
+				    fooTop.push([i, heightvalues[i]]);
+
+				// sort first by value (descending order), then by index (ascending order)
+				fooTop.sort(function(t1, t2) {
+				    return t2[1] - t1[1] || t1[0] - t2[0];
+				});
+
+				// shorten array to correct size
+				document.writeln(fooTop.length);
+				fooTop.length = maxValues;
+
+				return fooTop;
+			}
+
+			function makeTextSprite( message, parameters )
+			{
+				if ( parameters === undefined ) parameters = {};
+				
+				var fontface = parameters.hasOwnProperty("fontface") ? 
+					parameters["fontface"] : "Monospace";
+				
+				var fontsize = parameters.hasOwnProperty("fontsize") ? 
+					parameters["fontsize"] : 12;
+				
+				var borderThickness = parameters.hasOwnProperty("borderThickness") ? 
+					parameters["borderThickness"] : 4;
+				
+				var borderColor = parameters.hasOwnProperty("borderColor") ?
+					parameters["borderColor"] : { r:0, g:0, b:0, a:1.0 };
+				
+				var backgroundColor = parameters.hasOwnProperty("backgroundColor") ?
+					parameters["backgroundColor"] : { r:255, g:255, b:255, a:0.0 };
+
+				//var spriteAlignment = THREE.SpriteAlignment.topLeft;
+					
+				var canvas = document.createElement('canvas');
+				var context = canvas.getContext('2d');
+				context.font = "Bold " + fontsize + "px " + fontface;
+			    
+				// get size data (height depends only on font size)
+				var metrics = context.measureText( message );
+				var textWidth = metrics.width;
+				
+				console.log(textWidth);
+				
+				// text color
+				context.fillStyle = "rgba(0, 0, 0, 1.0)";
+
+				wrapText(context, message, borderThickness, fontsize + borderThickness, 512, fontsize);
+				
+				// canvas contents will be used for a texture
+				var texture = new THREE.Texture(canvas) 
+				texture.needsUpdate = true;
+
+				var spriteMaterial = new THREE.SpriteMaterial( 
+					{ map: texture, fog: true } );
+				var sprite = new THREE.Sprite( spriteMaterial );
+				sprite.scale.set(100,50,1.0);
+				return sprite;	
+			}
+
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				controls.handleResize();
+			}
+
+			function generateHeight( width, height ) {
+				var size = width * height, data = new Uint8Array( size ),
+				perlin = new ImprovedNoise(), quality = 1, z = Math.random() * 100;
+				for ( var j = 0; j < 4; j ++ ) {
+					for ( var i = 0; i < size; i ++ ) {
+						var x = i % width, y = ~~ ( i / width );
+						data[ i ] += Math.abs( perlin.noise( x / quality, y / quality, z ) * quality * 1.75 );
+					}
+					quality *= 5;
+				}
+				return data;
+			}
+			function generateTexture( data, width, height ) {
+				var canvas, canvasScaled, context, image, imageData,
+				level, diff, vector3, sun, shade;
+				vector3 = new THREE.Vector3( 0, 0, 0 );
+				sun = new THREE.Vector3( 1, 1, 1 );
+				sun.normalize();
+				canvas = document.createElement( 'canvas' );
+				canvas.width = width;
+				canvas.height = height;
+				context = canvas.getContext( '2d' );
+				context.fillStyle = '#000';
+				context.fillRect( 0, 0, width, height );
+				image = context.getImageData( 0, 0, canvas.width, canvas.height );
+				imageData = image.data;
+				for ( var i = 0, j = 0, l = imageData.length; i < l; i += 4, j ++ ) {
+					vector3.x = data[ j - 2 ] - data[ j + 2 ];
+					vector3.y = 2;
+					vector3.z = data[ j - width * 2 ] - data[ j + width * 2 ];
+					vector3.normalize();
+					shade = vector3.dot( sun );
+
+					<!-- #fffee2 --> //96+, 32+ 
+					imageData[ i ] = ( 255 + shade * 128 ) * ( 0.5 + data[ j ] * 0.0025 );
+					imageData[ i + 1 ] = ( 255 + shade * 96 ) * ( 0.5 + data[ j ] * 0.0025 );
+					imageData[ i + 2 ] = ( 255 + shade * 96 ) * ( 0.5 + data[ j ] * 0.0025 );
+					//imageData[ i + 3 ] = 0;//35 * ( 0.5 + data[ j ] * 0.0025 );;
+				}
+				context.putImageData( image, 0, 0 );
+				// Scaled 4x
+				canvasScaled = document.createElement( 'canvas' );
+				canvasScaled.width = width * 4;
+				canvasScaled.height = height * 4;
+				context = canvasScaled.getContext( '2d' );
+				context.scale( 4, 4 );
+				context.drawImage( canvas, 0, 0 );
+				image = context.getImageData( 0, 0, canvasScaled.width, canvasScaled.height );
+				imageData = image.data;
+				
+				for ( var i = 0, l = imageData.length; i < l; i += 4 ) {
+					var v = ~~ ( Math.random() * 5 );
+					imageData[ i ] += v;
+					imageData[ i + 1 ] += v;
+					imageData[ i + 2 ] += v;
+				}
+				context.putImageData( image, 0, 0 );
+				return canvasScaled;
+			}
+			//
+			function animate() {
+				
+				/*if (clock.getElapsedTime()%10 == 0)
+				{
+					var A = [68/255.0,105/255.0,239/255.0];
+					var B = [253/255.0,159/255.0,223/255.0];
+
+					var h = lerp(A, B, 0.01*getElapsedTime()%1);
+					var fogColor2 = new THREE.Color(h[0],h[1],h[2]);
+					scene.fog = new THREE.FogExp2( fogColor2 , 0.0025 );
+					renderer.setClearColor( fogColor2 );
+				}*/
+
+				requestAnimationFrame( animate );
+				render();
+				stats.update();
+			}
+			function render() {
+				controls.update( clock.getDelta() );
+				renderer.render( scene, camera );
+			}
+
+			function lerp(a, b, t) {
+			    var len = a.length;
+			    if(b.length != len) return;
+
+			    var x = [];
+			    for(var i = 0; i < len; i++)
+			        x.push(a[i] + t * (b[i] - a[i]));
+			    return x;
+			}
+
+		</script>
+
+	</body>
+</html>
